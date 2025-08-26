@@ -1,14 +1,3 @@
-# import pandas as pd
-# from data import get_cifar_10h 
-
-# a = get_cifar_10h()
-# print(a.columns)
-# tmp = tmp = a.iloc[3]
-# print(tmp)
-# tmp = a.iloc[1]["response"]
-# print(tmp)
-
-
 import matplotlib.pyplot as plt
 import numpy as np
 plt.rcParams.update({'font.size': 14})
@@ -174,3 +163,141 @@ plot(datab, datad, datau, title)
 
 # myd = [a.t for a in res]
 # print(myd)
+
+
+
+import pandas as pd
+
+def compute_disagreement(row):
+    """Disagreement = 1 - proportion of majority label"""
+    total = np.sum(row)
+    maj = np.max(row)
+    return 1 - maj / total if total > 0 else 0
+
+def subsample_annotations(data, n):
+    """
+    Subsample each row of data to exactly n annotations 
+    while preserving majority label.
+    """
+    arr_new = []
+    for row in data:
+        total = np.sum(row)
+        if total <= n:
+            arr_new.append(row)
+            continue
+        
+        # Subsample proportional to original counts but keep majority label
+        maj_idx = np.argmax(row)
+        counts = row.copy().astype(int)
+        
+        # Force majority label to keep majority after subsample
+        maj_keep = max(1, int(np.round((row[maj_idx] / total) * n)))
+        remaining = n - maj_keep
+        
+        # Allocate remaining proportionally to other labels
+        others = np.delete(np.arange(len(row)), maj_idx)
+        if remaining > 0:
+            proportions = row[others] / np.sum(row[others]) if np.sum(row[others]) > 0 else np.zeros(len(others))
+            alloc = np.random.multinomial(remaining, proportions)
+            new_row = np.zeros_like(row, dtype=int)
+            new_row[maj_idx] = maj_keep
+            new_row[others] = alloc
+        else:
+            new_row = np.zeros_like(row, dtype=int)
+            new_row[maj_idx] = maj_keep
+        arr_new.append(new_row)
+    return np.array(arr_new)
+
+def run_experiment_u(data, n, W=2):
+    """
+    Subsample annotations to n per item,
+    compute SL uncertainty and disagreement,
+    then compute correlation and average u.
+    """
+    subsampled = subsample_annotations(data, n)
+    res, _ = method_2(subsampled)
+    us = np.array([a.u for a in res])
+    disagreements = np.array([compute_disagreement(row) for row in subsampled])
+    
+    corr = np.corrcoef(us, disagreements)[0,1]
+    avg_u = np.mean(us)
+    return corr, avg_u
+
+def run_experiment_t(data, n, W=2):
+    """
+    Subsample annotations to n per item,
+    compute SL uncertainty and disagreement,
+    then compute correlation and average u.
+    """
+    subsampled = subsample_annotations(data, n)
+    res, _ = method_2(subsampled)
+    us = np.array([a.t for a in res])
+    disagreements = np.array([compute_disagreement(row) for row in subsampled])
+    
+    corr = np.corrcoef(us, disagreements)[0,1]
+    avg_t = np.mean(us)
+    return corr, avg_t
+
+def run_experiment_d(data, n, W=2):
+    """
+    Subsample annotations to n per item,
+    compute SL uncertainty and disagreement,
+    then compute correlation and average u.
+    """
+    subsampled = subsample_annotations(data, n)
+    res, _ = method_2(subsampled)
+    us = np.array([a.d for a in res])
+    disagreements = np.array([compute_disagreement(row) for row in subsampled])
+    
+    corr = np.corrcoef(us, disagreements)[0,1]
+    avg_d = np.mean(us)
+    return corr, avg_d
+
+def run_experiment(data, n, W=2):
+    """
+    Subsample annotations to n per item,
+    compute SL uncertainty and disagreement,
+    then compute correlation and average u.
+    """
+    subsampled = subsample_annotations(data, n)
+    res, _ = method_2(subsampled)
+    us = np.array([a.u for a in res])
+    ts = np.array([a.u for a in res])
+    ds = np.array([a.u for a in res])
+    disagreements = np.array([compute_disagreement(row) for row in subsampled])
+    
+    corr_u = np.corrcoef(us, disagreements)[0,1]
+    avg_u = np.mean(us)
+    
+    corr_t = np.corrcoef(ts, disagreements)[0,1]
+    avg_t = np.mean(ts)
+    
+    corr_d = np.corrcoef(ds, disagreements)[0,1]
+    avg_d = np.mean(ds)
+    return {"t": (corr_t, avg_t), "d": (corr_d, avg_d),"u": (corr_u, avg_u)}
+
+
+# Run for 5, 10, 20, 50 annotations
+results = []
+for n in [5, 10, 20, 50]:
+    stats = run_experiment(data, n)
+    results.append([
+        n,
+        round(stats["t"][0], 2), round(stats["t"][1], 2),
+        round(stats["d"][0], 2), round(stats["d"][1], 2),
+        round(stats["u"][0], 2), round(stats["u"][1], 2),
+    ])
+
+# Build DataFrame
+cols = [
+    "Annotations per item",
+    "Corr(t)", "Avg(t)",
+    "Corr(d)", "Avg(d)",
+    "Corr(u)", "Avg(u)"
+]
+df = pd.DataFrame(results, columns=cols)
+print(df)
+
+# Optional: save nicely
+df.to_latex("results_table.tex", index=False, float_format="%.2f")
+df.to_csv("results_table.csv", index=False)
