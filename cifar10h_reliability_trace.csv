@@ -1,0 +1,7 @@
+kind,stage,name,raw_value,q_value,direction,hyperparameters,K,r,s,b,d,u
+metric,annotation,IAA,0.9249500998003992,0.812375249500998,higher_is_better,"{'A': 0.6, 'L': 1.0}",5.0,4.0618762475049905,0.9381237524950098,,,
+metric,annotation,OLR,0.04966198070048711,0.8344600643317096,lower_is_better,{'T': 0.3},5.0,4.172300321658548,0.827699678341452,,,
+metric,annotation,USA(confidence-weighted),0.07459111827715033,0.9254088817228496,lower_is_better,"{'T': 1.0, 'confidence': 'reaction_time_minmax'}",5.0,4.627044408614248,0.37295559138575185,,,
+stage,annotation,BPQ Quantified Opinion,,,,{'W': 5},,12.861220977777785,2.138779022222214,0.6430610488888893,0.1069389511111107,0.25
+metric,processing,DIOR,0.9605545368672557,0.0,lower_is_better,{'T': 0.01},5.0,0.0,5.0,,,
+stage,processing,BPQ Quantified Opinion,,,,{'W': 5},,0.0,5.0,0.0,0.5,0.5

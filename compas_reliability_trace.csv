@@ -1,0 +1,19 @@
+kind,stage,name,raw_value,q_value,direction,hyperparameters,K,r,s,b,d,u
+metric,sampling,DG,0.43156899312587504,0.0,lower_is_better,{'T': 0.3},2.0,0.0,2.0,,,
+metric,sampling,MCR(African-American),3.5973423854175635,1.0,higher_is_better,"{'A': 0.5, 'L': 1.0}",2.0,2.0,0.0,,,
+metric,sampling,LTCI(c_charge_desc),0.6568364611260054,0.5097663730371506,higher_is_better,"{'A': 0.3, 'L': 1.0, 'tail_def': 'P_ref<0.01', 'eval_slice': 'post_median(c_jail_in)'}",2.0,1.019532746074301,0.9804672539256989,,,
+metric,sampling,DFI(c_jail_in),0.09990618087758567,0.09990618087758567,higher_is_better,"{'A': 0.0, 'L': 1.0, 't_max_days': 365}",2.0,0.19981236175517134,1.8001876382448287,,,
+metric,sampling,MSA(essential_cols),0.0,1.0,lower_is_better,"{'T': 0.1, 'cols': ['race', 'sex', 'age', 'priors_count', 'decile_score', 'two_year_recid']}",2.0,2.0,0.0,,,
+stage,sampling,BPQ Quantified Opinion,,,,{'W': 2},,5.219345107829472,4.780654892170528,0.43494542565245603,0.39838790768087734,0.16666666666666666
+metric,collection,ORR(decile_score),0.0,1.0,lower_is_better,"{'T': 0.05, 'min': 1, 'max': 10}",2.0,2.0,0.0,,,
+metric,collection,MDD(by_race),0.0,1.0,lower_is_better,"{'T': 0.2, 'cols': ['race', 'sex', 'age', 'priors_count', 'decile_score', 'two_year_recid']}",2.0,2.0,0.0,,,
+metric,collection,PIID,0.07547169811320754,0.0,lower_is_better,"{'T': 0.001, 'pii_cols': ['name', 'dob', 'first', 'last']}",2.0,0.0,2.0,,,
+metric,collection,SALS(race|features),0.5698314970836034,0.18595500416628086,lower_is_better,"{'T': 0.7, 'features': ['age', 'priors_count', 'juv_fel_count', 'juv_misd_count', 'decile_score']}",2.0,0.3719100083325617,1.6280899916674383,,,
+metric,collection,"RRS(qid=sex,race,age_cat)",0.19060011029790405,0.618799779404192,lower_is_better,"{'T': 0.5, 'quasi_identifiers': ['sex', 'race', 'age_cat']}",2.0,1.237599558808384,0.7624004411916161,,,
+stage,collection,BPQ Quantified Opinion,,,,{'W': 2},,5.609509567140946,4.390490432859054,0.4674591305950788,0.3658742027382545,0.16666666666666666
+metric,annotation,GLBI(two_year_recid|race),0.03574729803882641,0.8212635098058679,lower_is_better,"{'T': 0.2, 'groups': ['African-American', 'Caucasian']}",2.0,1.6425270196117359,0.35747298038826414,,,
+stage,annotation,BPQ Quantified Opinion,,,,{'W': 2},,1.6425270196117359,0.35747298038826414,0.41063175490293397,0.08936824509706603,0.5
+metric,processing,DIOR(duplicate rows),0.0,1.0,lower_is_better,{'T': 0.01},2.0,2.0,0.0,,,
+metric,processing,"FLCA(max|corr(feature,label)|)",0.2906072403350961,0.5156545994415065,lower_is_better,"{'T': 0.6, 'features': ['age', 'priors_count', 'juv_fel_count', 'juv_misd_count', 'juv_other_count']}",2.0,1.031309198883013,0.968690801116987,,,
+stage,processing,BPQ Quantified Opinion,,,,{'W': 2},,3.031309198883013,0.968690801116987,0.5052181998138355,0.16144846685283118,0.3333333333333333
+final,final_conjunction,ω_sampling ∧ ω_collection ∧ ω_annotation ∧ ω_processing,,,,"{'operator': 'conjunction (∧)', 'stages': 4}",,,,0.1157346441,0.7086838738,0.1755814821

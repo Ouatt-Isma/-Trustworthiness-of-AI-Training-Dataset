@@ -1,0 +1,140 @@
+"""
+VC-dimension-based class-balance opinion analysis for the COMPAS dataset.
+
+Complements compas.py (four-stage trace) with a single-metric balance opinion
+and an epsilon-sweep stability plot.
+"""
+
+import os
+import warnings
+from collections import Counter
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+
+warnings.filterwarnings("ignore")
+plt.rcParams.update({"font.size": 14})
+
+try:
+    from keras.models import Sequential
+    from keras.layers import Dense, Dropout, Input
+except ImportError:
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import Dense, Dropout, Input
+
+from balance_opinion import compute_balance_opinion, plot_epsilon_sweep
+
+
+def build_tabular_classifier(input_dim: int, n_classes: int) -> Sequential:
+    """
+    Two-hidden-layer MLP for tabular classification.
+
+    The architecture (parameter count × layer count) determines the VC dimension
+    used for uncertainty estimation; the model is not trained by default.
+    """
+    model = Sequential([
+        Input(shape=(input_dim,)),
+        Dense(128, activation="relu"),
+        Dropout(0.3),
+        Dense(64, activation="relu"),
+        Dropout(0.3),
+        Dense(n_classes, activation="softmax"),
+    ])
+    model.compile(
+        optimizer="adam",
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"],
+    )
+    return model
+
+
+def plot_label_distribution(y: np.ndarray, title: str):
+    """Count-plot of label frequencies."""
+    plt.figure(figsize=(8, 5))
+    sns.countplot(x=y)
+    plt.title(title)
+    plt.xlabel("Label")
+    plt.ylabel("Count")
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_class_probability_distribution(class_probs: list, title: str):
+    """Histogram + KDE of per-class probabilities with uniform reference 1/K."""
+    plt.figure(figsize=(8, 5))
+    sns.histplot(class_probs, bins=len(class_probs), stat="density", alpha=0.6)
+    sns.kdeplot(class_probs, linewidth=2)
+    plt.axvline(x=1.0 / len(class_probs), color="red", label="Uniform (1/K)")
+    plt.title(title)
+    plt.xlabel("Class probability")
+    plt.ylabel("Density")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+def run_compas_balance_analysis(
+    data_path: str = "data/compas-scores-two-years.csv",
+    label_col: str = "two_year_recid",
+    output_dir: str = "saved",
+):
+    """
+    Compute the class-balance opinion for a COMPAS label distribution and
+    produce an epsilon-sweep stability plot.
+
+    Parameters
+    ----------
+    data_path : path to compas-scores-two-years.csv
+    label_col : target column ("two_year_recid" or "race")
+    output_dir: directory for saved figures
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    df = pd.read_csv(data_path)
+
+    def _simplify_race(race: str) -> str:
+        return race if race in ("African-American", "Caucasian") else "Other"
+
+    df["race"] = df["race"].apply(_simplify_race)
+
+    feature_cols = [
+        "age", "juv_fel_count", "juv_misd_count",
+        "juv_other_count", "priors_count",
+        "c_charge_degree", "sex",
+    ]
+    df = df[feature_cols + [label_col]].dropna()
+    df = pd.get_dummies(df, columns=["c_charge_degree", "sex"], drop_first=True)
+
+    le = LabelEncoder()
+    y = le.fit_transform(df[label_col].values)
+    X = StandardScaler().fit_transform(df.drop(columns=[label_col]).values)
+
+    n_classes = len(np.unique(y))
+    classes   = list(range(n_classes))
+
+    plot_label_distribution(y, f"COMPAS – {label_col} Distribution")
+
+    class_probs = [Counter(y)[i] / len(y) for i in classes]
+    plot_class_probability_distribution(
+        class_probs, f"COMPAS – {label_col} Class Probabilities",
+    )
+
+    model = build_tabular_classifier(X.shape[1], n_classes)
+
+    op = compute_balance_opinion(model, len(X), class_probs, eps=0.02)
+    print(f"\nOpinion at eps=0.02:  b={op[0]:.4f},  d={op[1]:.4f},  u={op[2]:.4f}")
+
+    p_uniform = 1.0 / n_classes
+    plot_epsilon_sweep(
+        model, len(X), class_probs,
+        title=f"Opinion Evolution vs ε — COMPAS ({label_col})",
+        stability_zone=(p_uniform * 0.5, p_uniform * 1.5),
+        output_path=os.path.join(output_dir, f"compas_{label_col}_epsilon_sweep.pdf"),
+    )
+
+
+if __name__ == "__main__":
+    run_compas_balance_analysis()
